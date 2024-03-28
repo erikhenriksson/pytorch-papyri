@@ -1,9 +1,4 @@
-import glob
-import json
-import os
 import random
-import shutil
-from collections import Counter
 
 import numpy as np
 import torch
@@ -16,9 +11,6 @@ from sklearn.metrics import (
     f1_score,
     precision_recall_fscore_support,
 )
-
-from .data import get_dataset_and_labels
-
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -26,6 +18,8 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
+
+from .data import get_dataset_and_labels
 
 
 def run(cfg):
@@ -39,9 +33,9 @@ def run(cfg):
     torch.backends.cudnn.benchmark = False
 
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
-    dataset, label_mapping = get_dataset_and_labels(cfg, tokenizer)
+    dataset, labels, label_mapping = get_dataset_and_labels(cfg, tokenizer)
 
-    num_labels = len(label_mapping)  # Make sure label_mapping is defined as before
+    num_labels = len(labels)  # Make sure label_mapping is defined as before
     model = AutoModelForSequenceClassification.from_pretrained(
         cfg.model_name, num_labels=num_labels
     )

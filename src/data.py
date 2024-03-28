@@ -1,11 +1,11 @@
+import csv
 import sys
 from collections import Counter
-import csv
 
 csv.field_size_limit(sys.maxsize)
 
-from sklearn.model_selection import train_test_split
 from datasets import Dataset
+from sklearn.model_selection import train_test_split
 
 
 def get_dataset_and_labels(cfg, tokenizer):
@@ -95,4 +95,4 @@ def get_dataset_and_labels(cfg, tokenizer):
 
     print(sum([len(train), len(dev), len(test)]))
 
-    return {"train": train, "dev": dev, "test": test}, labels
+    return {"train": train, "dev": dev, "test": test}, labels, label_mapping
