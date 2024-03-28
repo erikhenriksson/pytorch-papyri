@@ -46,24 +46,46 @@ def run(cfg):
         cfg.model_name, num_labels=num_labels
     )
 
+    label_names = {id: label for label, id in label_mapping.items()}
+
     print(dataset["train"][0])
 
     # Define the training arguments
     training_args = TrainingArguments(
         output_dir="./results",  # Output directory for model checkpoints
-        evaluation_strategy="epoch",  # Evaluate each epoch
-        learning_rate=2e-5,  # Learning rate
-        per_device_train_batch_size=8,  # Batch size for training
-        per_device_eval_batch_size=8,  # Batch size for evaluation
-        num_train_epochs=3,  # Number of training epochs
-        weight_decay=0.01,  # Strength of weight decay
+        overwrite_output_dir=True,
+        num_train_epochs=30,
+        per_device_train_batch_size=cfg.train_batch_size,
+        per_device_eval_batch_size=cfg.eval_batch_size,
+        warmup_ratio=0.05,
+        weight_decay=0.01,
+        learning_rate=cfg.learning_rate,
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        logging_strategy="epoch",
+        eval_accumulation_steps=8,
+        metric_for_best_model="eval_loss",
+        load_best_model_at_end=True,
+        save_total_limit=2,
+        tf32=True,
+        group_by_length=True,
     )
 
-    # Function to compute the accuracy of our model
     def compute_metrics(p):
         predictions, labels = p
         predictions = predictions.argmax(axis=1)
-        return {"accuracy": accuracy_score(labels, predictions)}
+        f1 = f1_score(labels, predictions, average="weighted")
+        accuracy = accuracy_score(labels, predictions)
+        # Use the inverted label mapping to provide label names for the classification report
+        print(
+            classification_report(
+                labels,
+                predictions,
+                target_names=[label_names[id] for id in sorted(label_names)],
+                digits=4,
+            )
+        )
+        return {"accuracy": accuracy, "f1": f1}
 
     # Initialize the Trainer
     trainer = Trainer(
@@ -72,10 +94,11 @@ def run(cfg):
         train_dataset=dataset["train"],
         eval_dataset=dataset["dev"],
         compute_metrics=compute_metrics,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
 
     # Train the model
     trainer.train()
 
-    results = trainer.evaluate(dataset["test"])
+    results = trainer.predict(dataset["test"])
     print(results)
