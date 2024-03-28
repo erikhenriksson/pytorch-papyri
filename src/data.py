@@ -9,40 +9,34 @@ from sklearn.model_selection import train_test_split
 
 
 def get_dataset_and_labels(cfg, tokenizer):
-
     with open(f"data/papyri_{cfg.data}.tsv") as file:
         data = list(csv.reader(file, delimiter="\t"))[1:]
 
     data = [x for x in data if x[2].strip()]
+    print(f"Initial data size: {len(data)}")
 
-    labels = list(sorted({sublist[2] for sublist in data}))
-    label_mapping = {label: id for id, label in enumerate(labels)}
-    print(labels)
-    print(len(data))
-
-    # Filter out labels with fewer than 2 instances
+    # Filter out labels with fewer than 2 instances initially
     label_counts = Counter(item[2] for item in data)
     data = [item for item in data if label_counts[item[2]] > 1]
-
-    print(len(data))
+    print(f"Filtered data size: {len(data)}")
 
     # Extract features (texts) and labels according to their positions
-    texts = [[item[3]] for item in data]  # Extract only the text
-    ex_labels = [item[2] for item in data]  # Extract labels
+    texts = [[item[3]] for item in data]
+    ex_labels = [item[2] for item in data]
 
-    # Split into train and temporary test (which will become dev and test), stratifying by ex_labels
+    # First split into train and temporary test (to become dev and test)
     X_train, X_temp, y_train, y_temp = train_test_split(
         texts, ex_labels, test_size=0.4, stratify=ex_labels, random_state=42
     )
 
-    # Before the second split, filter out classes with fewer than 2 instances in y_temp
+    # Before the second split, filter out classes with fewer than 2 instances in y_temp again if needed
     temp_label_counts = Counter(y_temp)
     X_temp_filtered = [
         X_temp[i] for i, label in enumerate(y_temp) if temp_label_counts[label] > 1
     ]
     y_temp_filtered = [label for label in y_temp if temp_label_counts[label] > 1]
 
-    # Now, perform the second stratified split with the filtered temp sets
+    # Second split into dev and test
     X_dev, X_test, y_dev, y_test = train_test_split(
         X_temp_filtered,
         y_temp_filtered,
@@ -51,48 +45,40 @@ def get_dataset_and_labels(cfg, tokenizer):
         random_state=cfg.seed,
     )
 
-    # Tokenization function
-    def tokenize_function(examples):
-        return tokenizer(
-            examples["text"], padding="max_length", truncation=True, max_length=512
+    # Update labels and label_mapping after filtering
+    final_labels = sorted(set(y_train + y_dev + y_test))
+    label_mapping = {label: id for id, label in enumerate(final_labels)}
+
+    print(f"Final labels (after filtering): {final_labels}")
+
+    # Tokenization and conversion to dataset
+    def tokenize_and_create_dataset(X, y):
+        tokenized_texts = tokenizer(
+            [x[0] for x in X],
+            padding="max_length",
+            truncation=True,
+            max_length=512,
+            return_tensors="pt",
+        )
+        labels = [label_mapping[label] for label in y]
+        return Dataset.from_dict(
+            {
+                "input_ids": tokenized_texts["input_ids"],
+                "attention_mask": tokenized_texts["attention_mask"],
+                "labels": labels,
+            }
         )
 
-    # Recombine the features and labels into the desired dictionary format
-    train = (
-        Dataset.from_list(
-            [
-                {"label": label_mapping[y_train[i]], "text": X_train[i][0]}
-                for i in range(len(X_train))
-            ]
-        )
-        .map(tokenize_function, batched=True)
-        .shuffle(seed=cfg.seed)
-    )
-    dev = (
-        Dataset.from_list(
-            [
-                {"label": label_mapping[y_dev[i]], "text": X_dev[i][0]}
-                for i in range(len(X_dev))
-            ]
-        )
-        .map(tokenize_function, batched=True)
-        .shuffle(seed=cfg.seed)
-    )
-    test = (
-        Dataset.from_list(
-            [
-                {"label": label_mapping[y_test[i]], "text": X_test[i][0]}
-                for i in range(len(X_test))
-            ]
-        )
-        .map(tokenize_function, batched=True)
-        .shuffle(seed=cfg.seed)
+    train_dataset = tokenize_and_create_dataset(X_train, y_train).shuffle(seed=cfg.seed)
+    dev_dataset = tokenize_and_create_dataset(X_dev, y_dev).shuffle(seed=cfg.seed)
+    test_dataset = tokenize_and_create_dataset(X_test, y_test).shuffle(seed=cfg.seed)
+
+    print(
+        f"Train size: {len(train_dataset)}, Dev size: {len(dev_dataset)}, Test size: {len(test_dataset)}"
     )
 
-    print("Train:", len(train))
-    print("Dev:", len(dev))
-    print("Test:", len(test))
-
-    print(sum([len(train), len(dev), len(test)]))
-
-    return {"train": train, "dev": dev, "test": test}, labels, label_mapping
+    return (
+        {"train": train_dataset, "dev": dev_dataset, "test": test_dataset},
+        final_labels,
+        label_mapping,
+    )
