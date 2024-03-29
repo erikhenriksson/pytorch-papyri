@@ -33,14 +33,12 @@ def run(cfg):
     torch.backends.cudnn.benchmark = False
 
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
-    dataset, labels, label_mapping = get_dataset_and_labels(cfg, tokenizer)
-
-    num_labels = len(labels)  # Make sure label_mapping is defined as before
+    dataset, label_mapping = get_dataset_and_labels(cfg, tokenizer)
+    label_scheme = list(label_mapping.keys())
+    num_labels = len(label_scheme)
     model = AutoModelForSequenceClassification.from_pretrained(
         cfg.model_name, num_labels=num_labels
     )
-
-    label_names = {id: label for label, id in label_mapping.items()}
 
     print(dataset["train"][0])
 
@@ -61,24 +59,37 @@ def run(cfg):
         metric_for_best_model="eval_loss",
         load_best_model_at_end=True,
         save_total_limit=2,
-        tf32=True,
+        # tf32=True,
         group_by_length=True,
     )
 
     def compute_metrics(p):
         predictions, labels = p
         predictions = predictions.argmax(axis=1)
-        f1 = f1_score(labels, predictions, average="weighted")
+
+        # Assuming `label_mapping` is accessible and has the structure {label: index, ...}
+        # Invert it to get {index: label, ...} for easier access
+        index_to_label = {index: label for label, index in label_mapping.items()}
+
+        # Get unique label indices in the true labels of the evaluation set
+        unique_labels = sorted(set(labels))
+
+        # Map these indices back to their string representations
+        target_names = [index_to_label[label_index] for label_index in unique_labels]
+
+        # Now generate classification report only for labels present in y_true of evaluation data
+        f1 = f1_score(labels, predictions, average="weighted", labels=unique_labels)
         accuracy = accuracy_score(labels, predictions)
-        # Use the inverted label mapping to provide label names for the classification report
-        print(
-            classification_report(
-                labels,
-                predictions,
-                target_names=[label_names[id] for id in sorted(label_names)],
-                digits=4,
-            )
+        report = classification_report(
+            labels,
+            predictions,
+            target_names=target_names,
+            labels=unique_labels,
+            digits=4,
         )
+
+        print(report)
+
         return {"accuracy": accuracy, "f1": f1}
 
     # Initialize the Trainer

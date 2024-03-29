@@ -69,9 +69,20 @@ def get_dataset_and_labels(cfg, tokenizer):
             }
         )
 
-    train_dataset = tokenize_and_create_dataset(X_train, y_train).shuffle(seed=cfg.seed)
-    dev_dataset = tokenize_and_create_dataset(X_dev, y_dev).shuffle(seed=cfg.seed)
-    test_dataset = tokenize_and_create_dataset(X_test, y_test).shuffle(seed=cfg.seed)
+    train_dataset = (
+        tokenize_and_create_dataset(X_train, y_train)
+        .shuffle(seed=cfg.seed)
+
+    )
+    dev_dataset = (
+        tokenize_and_create_dataset(X_dev, y_dev)
+        .shuffle(seed=cfg.seed)
+
+    )
+    test_dataset = (
+        tokenize_and_create_dataset(X_test, y_test)
+        .shuffle(seed=cfg.seed)
+    )
 
     print(
         f"Train size: {len(train_dataset)}, Dev size: {len(dev_dataset)}, Test size: {len(test_dataset)}"
@@ -79,6 +90,5 @@ def get_dataset_and_labels(cfg, tokenizer):
 
     return (
         {"train": train_dataset, "dev": dev_dataset, "test": test_dataset},
-        final_labels,
         label_mapping,
     )
