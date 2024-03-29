@@ -24,9 +24,9 @@ def get_dataset_and_labels(cfg, tokenizer):
         item
         for item in data
         if item[2].startswith("Egypt")
-        and not ["Upper"] in item[2]
-        and not ["Coast"] in item[2]
-        and not ["Thebais"] in item[2]
+        and not "Upper" in item[2]
+        and not "Coast" in item[2]
+        and not "Thebais" in item[2]
     ]
     print(f"Filtered data size (Egypt): {len(data)}")
     # Extract features (texts) and labels according to their positions

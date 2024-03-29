@@ -44,7 +44,7 @@ def run(cfg):
 
     # Define the training arguments
     training_args = TrainingArguments(
-        output_dir="./results",  # Output directory for model checkpoints
+        output_dir=f"./models/{cfg.model_name}",  # Output directory for model checkpoints
         overwrite_output_dir=True,
         num_train_epochs=10,
         per_device_train_batch_size=cfg.train_batch_size,
