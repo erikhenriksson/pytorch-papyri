@@ -18,11 +18,10 @@ if __name__ == "__main__":
     parser.add_argument("--config", "-c", action=ActionConfigFile)
 
     # Trainer
-    parser.add_argument("--learning_rate", "-lr", type=float, default=5e-5)
+    parser.add_argument("--learning_rate", "-lr", type=float, default=3e-5)
     parser.add_argument("--train_batch_size", "-bt", type=int, default=8)
     parser.add_argument("--eval_batch_size", "-bd", type=int, default=8)
     parser.add_argument("--max_length", type=int, default=512)
-    parser.add_argument("--grad_acc_steps", type=int, default=1)
     parser.add_argument("--device", default="cuda")
 
     cfg = parser.parse_args()
