@@ -20,7 +20,14 @@ def get_dataset_and_labels(cfg, tokenizer):
     data = [item for item in data if label_counts[item[2]] >= 10]
     print(f"Filtered data size (examples >= 10): {len(data)}")
 
-    data = [item for item in data if item[2].startswith("Egypt")]
+    data = [
+        item
+        for item in data
+        if item[2].startswith("Egypt")
+        and not ["Upper"] in item[2]
+        and not ["Coast"] in item[2]
+        and not ["Thebais"] in item[2]
+    ]
     print(f"Filtered data size (Egypt): {len(data)}")
     # Extract features (texts) and labels according to their positions
     texts = [[item[3]] for item in data]
@@ -34,9 +41,9 @@ def get_dataset_and_labels(cfg, tokenizer):
     # Before the second split, filter out classes with fewer than 2 instances in y_temp again if needed
     temp_label_counts = Counter(y_temp)
     X_temp_filtered = [
-        X_temp[i] for i, label in enumerate(y_temp) if temp_label_counts[label] >= 10
+        X_temp[i] for i, label in enumerate(y_temp) if temp_label_counts[label] >= 1
     ]
-    y_temp_filtered = [label for label in y_temp if temp_label_counts[label] >= 10]
+    y_temp_filtered = [label for label in y_temp if temp_label_counts[label] >= 1]
 
     # Second split into dev and test
     X_dev, X_test, y_dev, y_test = train_test_split(
