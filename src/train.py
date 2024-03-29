@@ -46,7 +46,7 @@ def run(cfg):
     training_args = TrainingArguments(
         output_dir="./results",  # Output directory for model checkpoints
         overwrite_output_dir=True,
-        num_train_epochs=30,
+        num_train_epochs=10,
         per_device_train_batch_size=cfg.train_batch_size,
         per_device_eval_batch_size=cfg.eval_batch_size,
         warmup_ratio=0.05,
@@ -80,15 +80,16 @@ def run(cfg):
         # Now generate classification report only for labels present in y_true of evaluation data
         f1 = f1_score(labels, predictions, average="weighted", labels=unique_labels)
         accuracy = accuracy_score(labels, predictions)
-        report = classification_report(
-            labels,
-            predictions,
-            target_names=target_names,
-            labels=unique_labels,
-            digits=4,
-        )
+        if cfg.method == "test":
+            report = classification_report(
+                labels,
+                predictions,
+                target_names=target_names,
+                labels=unique_labels,
+                digits=4,
+            )
 
-        print(report)
+            print(report)
 
         return {"accuracy": accuracy, "f1": f1}
 
@@ -102,8 +103,15 @@ def run(cfg):
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
     )
 
-    # Train the model
-    trainer.train()
+    if cfg.method == "train":
+
+        # Train the model
+        trainer.train()
+
+    # Predict
+    cfg.method = "test"
+
+    print("Evaluating on test set...")
 
     results = trainer.predict(dataset["test"])
-    print(results)
+    print(results.metrics)

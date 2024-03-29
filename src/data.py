@@ -28,7 +28,7 @@ def get_dataset_and_labels(cfg, tokenizer):
 
     # First split into train and temporary test (to become dev and test)
     X_train, X_temp, y_train, y_temp = train_test_split(
-        texts, ex_labels, test_size=0.4, stratify=ex_labels, random_state=42
+        texts, ex_labels, test_size=0.2, stratify=ex_labels, random_state=42
     )
 
     # Before the second split, filter out classes with fewer than 2 instances in y_temp again if needed
