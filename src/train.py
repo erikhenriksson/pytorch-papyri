@@ -59,7 +59,7 @@ def run(cfg):
         metric_for_best_model="eval_loss",
         load_best_model_at_end=True,
         save_total_limit=2,
-        # tf32=True,
+        tf32=True,
         group_by_length=True,
     )
 
