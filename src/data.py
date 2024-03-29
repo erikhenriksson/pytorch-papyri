@@ -17,9 +17,11 @@ def get_dataset_and_labels(cfg, tokenizer):
 
     # Filter out labels with fewer than 2 instances initially
     label_counts = Counter(item[2] for item in data)
-    data = [item for item in data if label_counts[item[2]] > 1]
-    print(f"Filtered data size: {len(data)}")
+    data = [item for item in data if label_counts[item[2]] >= 10]
+    print(f"Filtered data size (examples >= 10): {len(data)}")
 
+    data = [item for item in data if item[2].startswith("Egypt")]
+    print(f"Filtered data size (Egypt): {len(data)}")
     # Extract features (texts) and labels according to their positions
     texts = [[item[3]] for item in data]
     ex_labels = [item[2] for item in data]
@@ -32,9 +34,9 @@ def get_dataset_and_labels(cfg, tokenizer):
     # Before the second split, filter out classes with fewer than 2 instances in y_temp again if needed
     temp_label_counts = Counter(y_temp)
     X_temp_filtered = [
-        X_temp[i] for i, label in enumerate(y_temp) if temp_label_counts[label] > 1
+        X_temp[i] for i, label in enumerate(y_temp) if temp_label_counts[label] >= 10
     ]
-    y_temp_filtered = [label for label in y_temp if temp_label_counts[label] > 1]
+    y_temp_filtered = [label for label in y_temp if temp_label_counts[label] >= 10]
 
     # Second split into dev and test
     X_dev, X_test, y_dev, y_test = train_test_split(
@@ -69,20 +71,9 @@ def get_dataset_and_labels(cfg, tokenizer):
             }
         )
 
-    train_dataset = (
-        tokenize_and_create_dataset(X_train, y_train)
-        .shuffle(seed=cfg.seed)
-
-    )
-    dev_dataset = (
-        tokenize_and_create_dataset(X_dev, y_dev)
-        .shuffle(seed=cfg.seed)
-
-    )
-    test_dataset = (
-        tokenize_and_create_dataset(X_test, y_test)
-        .shuffle(seed=cfg.seed)
-    )
+    train_dataset = tokenize_and_create_dataset(X_train, y_train).shuffle(seed=cfg.seed)
+    dev_dataset = tokenize_and_create_dataset(X_dev, y_dev).shuffle(seed=cfg.seed)
+    test_dataset = tokenize_and_create_dataset(X_test, y_test).shuffle(seed=cfg.seed)
 
     print(
         f"Train size: {len(train_dataset)}, Dev size: {len(dev_dataset)}, Test size: {len(test_dataset)}"
