@@ -3,14 +3,7 @@ import random
 import numpy as np
 import torch
 import torch.nn.functional as F
-from scipy.special import expit as sigmoid
-from sklearn.metrics import (
-    accuracy_score,
-    average_precision_score,
-    classification_report,
-    f1_score,
-    precision_recall_fscore_support,
-)
+from sklearn.metrics import accuracy_score, classification_report, f1_score
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -42,9 +35,8 @@ def run(cfg):
 
     print(dataset["train"][0])
 
-    # Define the training arguments
     training_args = TrainingArguments(
-        output_dir=f"./models/{cfg.model_name}",  # Output directory for model checkpoints
+        output_dir=f"./models/{cfg.model_name}",
         overwrite_output_dir=True,
         num_train_epochs=10,
         per_device_train_batch_size=cfg.train_batch_size,
@@ -67,8 +59,6 @@ def run(cfg):
         predictions, labels = p
         predictions = predictions.argmax(axis=1)
 
-        # Assuming `label_mapping` is accessible and has the structure {label: index, ...}
-        # Invert it to get {index: label, ...} for easier access
         index_to_label = {index: label for label, index in label_mapping.items()}
 
         # Get unique label indices in the true labels of the evaluation set
@@ -77,7 +67,7 @@ def run(cfg):
         # Map these indices back to their string representations
         target_names = [index_to_label[label_index] for label_index in unique_labels]
 
-        # Now generate classification report only for labels present in y_true of evaluation data
+        # Generate classification report only for labels present in y_true of evaluation data
         f1 = f1_score(labels, predictions, average="weighted", labels=unique_labels)
         accuracy = accuracy_score(labels, predictions)
         if cfg.method == "test":
